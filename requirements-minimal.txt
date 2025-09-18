@@ -1,0 +1,14 @@
+# Minimal requirements for Render deployment
+setuptools>=68.0.0
+wheel>=0.40.0
+
+# Core web framework
+flask==2.3.3
+gunicorn==21.2.0
+python-dotenv==1.0.0
+
+# Basic GPS libraries (remove problematic ones)
+requests==2.31.0
+pyyaml==6.0.1
+
+# If the main requirements fail, use this minimal set first

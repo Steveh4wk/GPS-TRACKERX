@@ -1,0 +1,48 @@
+# RENDER OPTIMIZED REQUIREMENTS
+# Keep build tools at specific compatible versions
+
+# Build essentials - MUST BE FIRST
+setuptools==69.5.1
+wheel==0.43.0
+pip==24.0
+
+# Core web framework - tested versions
+flask==2.3.3
+gunicorn==21.2.0
+werkzeug==2.3.7
+jinja2==3.1.4
+itsdangerous==2.1.2
+click==8.1.7
+blinker==1.6.3
+
+# Configuration
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# HTTP and networking
+requests==2.31.0
+urllib3==2.0.7
+certifi==2024.8.30
+
+# Date/time
+python-dateutil==2.8.2
+pytz==2024.2
+
+# Only essential GPS libraries
+geopy==2.4.0
+geographiclib==2.1
+
+# Web sockets (simplified)
+flask-socketio==5.3.6
+python-socketio==5.11.4
+python-engineio==4.11.1
+
+# Minimal data processing  
+pandas==2.0.3
+numpy==1.24.4
+
+# Logging
+colorlog==6.7.0
+
+# Testing (minimal)
+pytest==7.4.4

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracker Admin - Tracciamento Dettagliato</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+        }
+        .main-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            margin: 20px;
+            padding: 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 25px;
+            margin-bottom: 0;
+        }
+        .data-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid #1976d2;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .data-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        .gps-card {
+            border-left-color: #4caf50;
+            background: linear-gradient(135deg, #e8f5e8 0%, #ffffff 100%);
+        }
+        .device-card {
+            border-left-color: #9c27b0;
+            background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);
+        }
+        .network-card {
+            border-left-color: #03a9f4;
+            background: linear-gradient(135deg, #e1f5fe 0%, #ffffff 100%);
+        }
+        .actions-card {
+            border-left-color: #e91e63;
+            background: linear-gradient(135deg, #fce4ec 0%, #ffffff 100%);
+        }
+        .alert-card {
+            border-left-color: #ff5722;
+            background: linear-gradient(135deg, #ffebee 0%, #ffffff 100%);
+        }
+        .stat-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .stat-success { background: #e8f5e8; color: #2e7d32; }
+        .stat-info { background: #e1f5fe; color: #0277bd; }
+        .stat-warning { background: #fff3e0; color: #f57c00; }
+        .stat-danger { background: #ffebee; color: #c62828; }
+        
+        .coord-display {
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 3px solid #4caf50;
+        }
+        
+        .map-container {
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .tracking-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .tracking-table th {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        
+        .navbar-custom {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            border: none;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            border: none;
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+        
+        .phone-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+            text-align: center;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+        
+        .coordinates-link {
+            display: inline-block;
+            background: #1976d2;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .coordinates-link:hover {
+            background: #1565c0;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .timeline-item {
+            border-left: 3px solid #1976d2;
+            padding-left: 20px;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1976d2;
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #4caf50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin">
+                <i class="fas fa-satellite-dish"></i> GPS Tracker Admin - Tracciamento Live
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-link">
+                    <span class="live-indicator"></span>
+                    Live Tracking
+                </span>
+                <a class="nav-link" href="/admin">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </a>
+                <a class="nav-link" href="/">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header-section">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-0">
+                            <i class="fas fa-crosshairs"></i> 
+                            Tracciamento GPS Dettagliato
+                        </h1>
+                        <p class="mb-0 mt-2 opacity-75">Monitoring completo delle posizioni e dati raccolti</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="stat-badge stat-success">
+                            <i class="fas fa-signal"></i> Sistema Attivo
+                        </div>
+                        <div id="lastUpdateTime" class="text-white-50 mt-2">
+                            Ultimo aggiornamento: --:--
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row p-4">
+                <!-- Colonna sinistra - Dati GPS e Dispositivo -->
+                <div class="col-lg-8">
+                    <!-- GPS Data Card -->
+                    <div class="data-card gps-card">
+                        <h3 class="text-success mb-4">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            Posizione GPS Attuale
+                        </h3>
+                        
+                        <div id="gpsData">
+                            <!-- Dati GPS caricati via JavaScript -->
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Caricamento dati GPS...</p>
+                            </div>
+                        </div>
+
+                        <!-- Mappa -->
+                        <div id="map" class="map-container"></div>
+                    </div>
+
+                    <!-- Tracking History -->
+                    <div class="data-card">
+                        <h3 class="text-primary mb-4">
+                            <i class="fas fa-route"></i> 
+                            Storico Tracciamento (Ultime 24h)
+                        </h3>
+                        
+                        <div class="table-responsive tracking-table">
+                            <table class="table table-hover mb-0" id="trackingTable">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Coordinate</th>
+                                        <th>Velocità</th>
+                                        <th>Precisione</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dati caricati via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colonna destra - Info Sistema e Statistiche -->
+                <div class="col-lg-4">
+                    <!-- Phone Data Card -->
+                    <div class="data-card actions-card">
+                        <h4 class="text-danger mb-3">
+                            <i class="fas fa-phone"></i> 
+                            Numero Telefono
+                        </h4>
+                        <div id="phoneData">
+                            <div class="phone-display">
+                                <i class="fas fa-mobile-alt"></i> 
+                                <span id="phoneNumber">Caricamento...</span>
+                            </div>
+                            <div class="text-center">
+                                <span class="stat-badge" id="phoneStatus">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device Info Card -->
+                    <div class="data-card device-card">
+                        <h4 class="text-purple mb-3">
+                            <i class="fas fa-mobile-alt"></i> 
+                            Informazioni Dispositivo
+                        </h4>
+                        <div id="deviceInfo">
+                            <!-- Device info caricata via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Network Info Card -->
+                    <div class="data-card network-card">
+                        <h4 class="text-info mb-3">
+                            <i class="fas fa-globe"></i> 
+                            Informazioni Rete
+                        </h4>
+                        <div id="networkInfo">
+                            <!-- Network info caricata via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Alerts -->
+                    <div class="data-card alert-card">
+                        <h4 class="text-danger mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            Alert Recenti
+                        </h4>
+                        <div id="recentAlerts">
+                            <!-- Alerts caricati via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" onclick="refreshAllData()" title="Aggiorna dati">
+        <i class="fas fa-sync-alt" id="refreshIcon"></i>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let currentMarker;
+        let trackingPath = [];
+        let refreshInterval;
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([40.7128, -74.0060], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: ' OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load GPS data
+        async function loadGPSData() {
+            try {
+                const response = await fetch('/api/admin/recent_locations');
+                const data = await response.json();
+                
+                if (data.locations && data.locations.length > 0) {
+                    const currentLocation = data.locations[0];
+                    
+                    // Update GPS card
+                    document.getElementById('gpsData').innerHTML = `
+                        <div class="coord-display">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Latitudine:</strong><br>
+                                    <span class="fs-5 text-success">${currentLocation.latitude.toFixed(6)}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Longitudine:</strong><br>
+                                    <span class="fs-5 text-success">${currentLocation.longitude.toFixed(6)}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <strong>Velocità:</strong><br>
+                                    <span class="stat-badge stat-info">${currentLocation.speed.toFixed(1)} km/h</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Precisione:</strong><br>
+                                    <span class="stat-badge stat-warning">${currentLocation.accuracy.toFixed(1)} m</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Direzione:</strong><br>
+                                    <span class="stat-badge stat-info">${currentLocation.heading || 0}°</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="https://maps.google.com/?q=${currentLocation.latitude},${currentLocation.longitude}" 
+                               target="_blank" class="coordinates-link">
+                                <i class="fas fa-external-link-alt"></i> Apri in Google Maps
+                            </a>
+                            <a href="https://www.openstreetmap.org/?mlat=${currentLocation.latitude}&mlon=${currentLocation.longitude}&zoom=16" 
+                               target="_blank" class="coordinates-link">
+                                <i class="fas fa-map"></i> OpenStreetMap
+                            </a>
+                        </div>
+                    `;
+                    
+                    // Update map
+                    updateMap(currentLocation);
+                }
+                
+                // Update last update time
+                document.getElementById('lastUpdateTime').textContent = 
+                    'Ultimo aggiornamento: ' + new Date().toLocaleTimeString();
+                    
+            } catch (error) {
+                console.error('Errore caricamento GPS:', error);
+                document.getElementById('gpsData').innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <p class="mt-2">Errore nel caricamento dei dati GPS</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Update map with current location
+        function updateMap(location) {
+            const lat = location.latitude;
+            const lng = location.longitude;
+            
+            // Update marker
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            
+            currentMarker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup(`
+                    <b>Posizione Attuale</b><br>
+                    ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
+                    <small>${new Date(location.timestamp).toLocaleString()}</small>
+                `)
+                .openPopup();
+            
+            // Center map on location
+            map.setView([lat, lng], 15);
+        }
+
+        // Load tracking history
+        async function loadTrackingHistory() {
+            try {
+                const response = await fetch('/api/admin/tracking_data');
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#trackingTable tbody');
+                tbody.innerHTML = '';
+                
+                data.tracks.slice(0, 20).forEach(track => {
+                    const row = tbody.insertRow();
+                    const timestamp = new Date(track.timestamp);
+                    
+                    row.innerHTML = `
+                        <td>
+                            <small>${timestamp.toLocaleDateString()}</small><br>
+                            <strong>${timestamp.toLocaleTimeString()}</strong>
+                        </td>
+                        <td>
+                            <small>
+                                ${track.latitude.toFixed(4)}<br>
+                                ${track.longitude.toFixed(4)}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="stat-badge stat-info">${track.speed.toFixed(1)} km/h</span>
+                        </td>
+                        <td>
+                            <span class="stat-badge stat-warning">${track.accuracy.toFixed(1)} m</span>
+                        </td>
+                        <td>
+                            <a href="https://maps.google.com/?q=${track.latitude},${track.longitude}" 
+                               target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </a>
+                        </td>
+                    `;
+                });
+                
+            } catch (error) {
+                console.error('Errore caricamento storico:', error);
+            }
+        }
+
+        // Load device and network info (simulated based on gps-trackerX)
+        function loadDeviceInfo() {
+            // Simulated device info
+            const deviceData = {
+                phone_number: '+39 333 123 4567',
+                device_type: 'iPhone 14 Pro',
+                platform: 'iOS 17.1',
+                battery_level: 85,
+                is_mobile: true,
+                language: 'it-IT',
+                ip_address: '93.40.123.45',
+                city: 'Villa San Giovanni',
+                region: 'Calabria',
+                country: 'Italia',
+                isp: 'Telecom Italia'
+            };
+
+            // Update phone
+            document.getElementById('phoneNumber').textContent = deviceData.phone_number;
+            document.getElementById('phoneStatus').textContent = 'Verificato';
+            document.getElementById('phoneStatus').className = 'stat-badge stat-success';
+
+            // Update device info
+            document.getElementById('deviceInfo').innerHTML = `
+                <div class="timeline-item">
+                    <strong>Dispositivo:</strong><br>
+                    <span class="text-muted">${deviceData.device_type}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sistema:</strong><br>
+                    <span class="text-muted">${deviceData.platform}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Tipo:</strong><br>
+                    <span class="stat-badge stat-info">${deviceData.is_mobile ? 'Mobile' : 'Desktop'}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Batteria:</strong><br>
+                    <span class="stat-badge ${deviceData.battery_level > 60 ? 'stat-success' : 'stat-warning'}">${deviceData.battery_level}%</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Lingua:</strong><br>
+                    <span class="text-muted">${deviceData.language}</span>
+                </div>
+            `;
+
+            // Update network info
+            document.getElementById('networkInfo').innerHTML = `
+                <div class="timeline-item">
+                    <strong>Indirizzo IP:</strong><br>
+                    <span class="text-muted">${deviceData.ip_address}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Località:</strong><br>
+                    <span class="text-muted">${deviceData.city}, ${deviceData.region}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Paese:</strong><br>
+                    <span class="stat-badge stat-info">${deviceData.country}</span>
+                </div>
+                <div class="timeline-item">
+                    <strong>Provider:</strong><br>
+                    <span class="text-muted">${deviceData.isp}</span>
+                </div>
+            `;
+        }
+
+        // Load recent alerts
+        async function loadRecentAlerts() {
+            try {
+                const response = await fetch('/api/alerts');
+                const data = await response.json();
+                
+                const alertsContainer = document.getElementById('recentAlerts');
+                alertsContainer.innerHTML = '';
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    data.alerts.slice(0, 5).forEach(alert => {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'timeline-item';
+                        alertDiv.innerHTML = `
+                            <div class="stat-badge ${alert.severity === 'high' ? 'stat-danger' : 'stat-warning'} mb-2">
+                                ${alert.severity.toUpperCase()}
+                            </div><br>
+                            <strong>${alert.zone_name}</strong><br>
+                            <small class="text-muted">${alert.message}</small><br>
+                            <small class="text-muted">${new Date(alert.timestamp).toLocaleString()}</small>
+                        `;
+                        alertsContainer.appendChild(alertDiv);
+                    });
+                } else {
+                    alertsContainer.innerHTML = '<p class="text-muted text-center">Nessun alert recente</p>';
+                }
+                
+            } catch (error) {
+                console.error('Errore caricamento alerts:', error);
+            }
+        }
+
+        // Refresh all data
+        async function refreshAllData() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            
+            await Promise.all([
+                loadGPSData(),
+                loadTrackingHistory(),
+                loadRecentAlerts()
+            ]);
+            
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+            }, 1000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadDeviceInfo(); // Static info
+            refreshAllData();
+            
+            // Auto-refresh every 30 seconds
+            refreshInterval = setInterval(refreshAllData, 30000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
